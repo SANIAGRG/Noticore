@@ -11,5 +11,6 @@ public enum NotificationStatus {
     PENDING,
     RETRYING,
     SENT,
-    FAILED
+    FAILED,
+    CANCELLED
 }

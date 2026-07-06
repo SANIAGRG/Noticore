@@ -1,0 +1,128 @@
+{
+  "info": {
+    "name": "NotiCore API",
+    "description": "Full endpoint collection for NotiCore -- a multi-channel notification microservice. Covers creating, viewing, cancelling, and replaying notifications. Set the {{baseUrl}} variable (defaults to http://localhost:8080) and, for endpoints needing an ID, either paste one manually or use one returned by a previous request.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "notificationId", "value": "", "type": "string", "description": "Paste a notification ID here to use in the ID-based requests below" }
+  ],
+  "item": [
+    {
+      "name": "Create Notification (Email)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"postman-user\",\n  \"channel\": \"EMAIL\",\n  \"recipient\": \"test@example.com\",\n  \"message\": \"Hello from Postman\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "notifications" ]
+        },
+        "description": "Creates a new notification. Saved as PENDING, then published to the matching Kafka topic (notifications.email/sms/push) for processing."
+      }
+    },
+    {
+      "name": "Create Notification (SMS)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"postman-user\",\n  \"channel\": \"SMS\",\n  \"recipient\": \"+919876543210\",\n  \"message\": \"Hello via SMS from Postman\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "notifications" ]
+        },
+        "description": "Same endpoint as Email creation, just with channel: SMS -- demonstrates routing to a different Kafka topic and consumer group."
+      }
+    },
+    {
+      "name": "Create Notification (Push)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"postman-user\",\n  \"channel\": \"PUSH\",\n  \"recipient\": \"device-token-abc123\",\n  \"message\": \"Hello via push from Postman\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "notifications" ]
+        }
+      }
+    },
+    {
+      "name": "Create Notification (Invalid -- missing fields)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"channel\": \"EMAIL\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "notifications" ]
+        },
+        "description": "Deliberately missing userId, recipient, and message. Should return a 400 Bad Request thanks to @Valid + @NotBlank on CreateNotificationRequest -- demonstrates the validation layer without needing to write any test assertion code."
+      }
+    },
+    {
+      "name": "Get Notification by ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications/{{notificationId}}",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "notifications", "{{notificationId}}" ]
+        },
+        "description": "Set the notificationId collection variable to an ID returned by a Create request, then run this to fetch its current status."
+      }
+    },
+    {
+      "name": "Get All Notifications for a User",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications/user/postman-user",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "notifications", "user", "postman-user" ]
+        },
+        "description": "Returns every notification ever created for this userId, regardless of status."
+      }
+    },
+    {
+      "name": "Cancel Notification",
+      "request": {
+        "method": "PATCH",
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/cancel",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "notifications", "{{notificationId}}", "cancel" ]
+        },
+        "description": "Only works while the notification is still PENDING (i.e. before the consumer has processed it). Returns a 409 Conflict with a clear error message if it's already RETRYING/SENT/FAILED/CANCELLED -- try running this a moment after Create to catch it in time, or immediately after to see the 409 error path."
+      }
+    },
+    {
+      "name": "Replay Notification",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/replay",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "notifications", "{{notificationId}}", "replay" ]
+        },
+        "description": "Only works on a notification currently at FAILED status (i.e. sitting in the dead letter queue). Resets it to PENDING and republishes it to its original channel's Kafka topic for another full attempt. Returns a 409 Conflict if the notification isn't currently FAILED."
+      }
+    }
+  ]
+}
