@@ -21,5 +21,18 @@ spring:
       hibernate:
         format_sql: true
 
+  kafka:
+    # Matches the port exposed in docker-compose.yml
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: noticore-notification-processors
+      auto-offset-reset: earliest
+
+  data:
+    redis:
+      # Matches the port exposed in docker-compose.yml
+      host: localhost
+      port: 6379
+
 server:
   port: 8080
