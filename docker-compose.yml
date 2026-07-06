@@ -1,0 +1,31 @@
+services:
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: noticore-kafka
+    ports:
+      # Exposes Kafka to your Windows machine (and your Spring Boot app) on localhost:9092
+      - "9092:9092"
+    environment:
+      # KRaft mode settings -- this single container acts as both the
+      # "broker" (stores/serves messages) and the "controller" (manages
+      # cluster metadata), which is why no separate Zookeeper container
+      # is needed here, unlike older Kafka tutorials you may see online.
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      # Fine for local single-node dev; a real cluster would use 3 replicas
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      CLUSTER_ID: "noticore-local-cluster-1"
+
+  redis:
+    image: redis:7-alpine
+    container_name: noticore-redis
+    ports:
+      # Exposes Redis to your Windows machine (and your Spring Boot app) on localhost:6379
+      - "6379:6379"
